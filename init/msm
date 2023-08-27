@@ -262,20 +262,38 @@ get_latest_file() {
 	local best_time=0
 	local best_file=""
 
-	while IFS= read -r -d $'\0' file; do
-		# Remove the path, leaving just the file name
-		local date_time="$(basename "$file" | awk -F '-' '{print $1 "-" $2 "-" $3 " " $4 ":" $5 ":" $6}')"
+	if [[ "$1" == *"forge"* ]]; then
+		for i in $1/*; do
+			if [ -d "$i" ]; then
+				# Remove the path, leaving just the file name
+				local date_time="$(basename "$i" | awk -F '-' '{print $1 "-" $2 "-" $3 " " $4 ":" $5 ":" $6}')"
 
-		# Get the time in seconds since 1970 from file name
-		local seconds="$(date -d "$date_time" "+%s" 2> /dev/null)"
+				# Get the time in seconds since 1970 from file name
+				local seconds="$(date -d "$date_time" "+%s" 2> /dev/null)"
 
-		# If that is newer than the current best, override variables
-		if [[ "$seconds" -gt "$best_time" ]]; then
-			best_time="$seconds"
-			best_file="$file"
-		fi
-	done < <(find "$1" -maxdepth 1 -type f -print0)
+				# If that is newer than the current best, override variables
+				if [[ "$seconds" -gt "$best_time" ]]; then
+					best_time="$seconds"
+					best_file="$i"
+				fi
+			fi
+		done
+	else
+		while IFS= read -r -d $'\0' file; do
 
+			# Remove the path, leaving just the file name
+			local date_time="$(basename "$file" | awk -F '-' '{print $1 "-" $2 "-" $3 " " $4 ":" $5 ":" $6}')"
+
+			# Get the time in seconds since 1970 from file name
+			local seconds="$(date -d "$date_time" "+%s" 2> /dev/null)"
+
+			# If that is newer than the current best, override variables
+			if [[ "$seconds" -gt "$best_time" ]]; then
+				best_time="$seconds"
+				best_file="$file"
+			fi
+		done < <(find "$1" -maxdepth 1 -type f -print0)
+	fi
 	RETURN="$best_file"
 }
 
@@ -1130,7 +1148,15 @@ jargroup_getlatest() {
                 if [[ -n "$jar_url" ]]; then
                     as_user "$SETTINGS_USERNAME" "wget --quiet $wget_opts --no-check-certificate -O '$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR/minecraft_server.$latest_version.jar' '$jar_url'"
                 else
+					if [[ "$1" == "forge" ]]; then
+						forgejar_download $@
+						if [[ $? == 1 ]]; then
+							echo "return"
+							return
+						fi
+					else
                     as_user "$SETTINGS_USERNAME" "wget --quiet $wget_opts --no-check-certificate --input-file='$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_TARGET' --directory-prefix='$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR'"
+					fi
                 fi
 
 				echo "Done."
@@ -1183,6 +1209,25 @@ jargroup_getlatest() {
 			error_exit NAME_NOT_FOUND "There is no jar group with the name \"$1\"."
 		fi
 	fi
+}
+
+# Downloads specificly a forge jar and extra's
+forgejar_download() {
+	echo "forge download."
+	as_user "$SETTINGS_USERNAME" "wget $wget_opts --quiet --no-check-certificate --input-file='$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_TARGET' --directory-prefix='$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR'"
+	local file_name="$(ls -1 "$SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR")"
+	echo "Downloaded installer: $file_name."
+	local dirname=${file_name%"-installer.jar"}
+	if [ "$(find "$SETTINGS_JAR_STORAGE_PATH/$1" -name "*$dirname" -type d | wc -l)" -ge 1 ]; then
+		echo "version already exists"
+		as_user "$SETTINGS_USERNAME" "rm -rf $SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR"
+		return 1
+	fi
+	as_user "$SETTINGS_USERNAME" "mkdir $SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR/$dirname/"
+	echo "Unpacking installer."
+	as_user "$SETTINGS_USERNAME" "java -jar $SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR/$file_name --installServer $SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR/$dirname/ > /dev/null"
+	as_user "$SETTINGS_USERNAME" "rm $SETTINGS_JAR_STORAGE_PATH/$1/$SETTINGS_JARGROUP_DOWNLOAD_DIR/$file_name"
+	return 0
 }
 
 # Deletes an existing jargroup
@@ -1713,6 +1758,11 @@ server_set_jar() {
 
 		if [[ ! -z "$jar" ]]; then
 			as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar\" \"${SERVER_JAR_PATH[$1]}\""
+
+			if [[ "$2" == "forge" ]]; then
+				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/\" \"${SERVER_PATH[$1]}/libraries\""
+			fi
+
 			echo "Server \"${SERVER_NAME[$1]}\" is now using \"$jar\"."
 		fi
 	else
@@ -2181,7 +2231,7 @@ command_update() {
 	local any_files_updated="false"
 
 	# Check flags, semi-colon ';' delimits flags for example
-	# COMMAND_FLAGS could contain ";--noinput;--quiet;-q;-ni;"
+	# COMMAND_FLAGS could contain ";--noinput;;-q;-ni;"
 	if [[ "$COMMAND_FLAGS" =~ \;--noinput\; ]]; then
 		local noinput="true"
 	fi
@@ -3608,7 +3658,7 @@ register_commands() {
 	#                    must be final element
 	#
 	#     <flags>        Matches a list of space separated flags, such as
-	#                    "--noinput --quiet -p -d". Not passed as a positional
+	#                    "--noinput  -p -d". Not passed as a positional
 	#                    argument. Instead set as the value of COMMAND_FLAGS.
 	#
 	#     <name>         Same as "<string>", also ensures it's a valid name
