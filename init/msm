@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.11.0"
+VERSION="0.12.0"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -239,11 +239,11 @@ debug() {
 # $1: The name to check
 is_valid_name() {
 	local valid="^[a-zA-Z0-9\_\-]+$"
-	local invalid="^(start|stop|restart|version|server|jargroup|all|config|update|help|\-\-.*)$"
+	local invalid="^(start|stop|restart|version|server|jargroup|startargs|all|config|update|help|\-\-.*)$"
 
 	if [[ "$1" =~ $valid ]]; then
 		if [[ "$1" =~ $invalid ]]; then
-			error_exit INVALID_ARGUMENT "Invalid name \"$1\": A name may not be any of the following reserved worlds \"start\", \"stop\", \"restart\", \"server\", \"version\", \"jargroup\", \"all\", \"config\", \"update\" or \"help\" or start with two dashes (--)."
+			error_exit INVALID_ARGUMENT "Invalid name \"$1\": A name may not be any of the following reserved worlds \"start\", \"stop\", \"restart\", \"server\", \"version\", \"jargroup\", \"startargs\", \"all\", \"config\", \"update\" or \"help\" or start with two dashes (--)."
 		else
 			return 0
 		fi
@@ -651,7 +651,7 @@ server_is_running() {
 server_ensure_jar() {
 	server_property "$1" JAR_PATH
 
-	if [ -f "${SERVER_JAR_PATH[$1]}" ]; then
+	if [ -e "${SERVER_JAR_PATH[$1]}" ]; then
 		return 0
 	fi
 
@@ -1282,8 +1282,22 @@ jargroup_rename() {
 
 
 
+### Start arguments Functions
+### -------------------------
 
+# Lists all startArgs
+startargs_list() {
+	manager_property START_STORAGE_PATH
 
+	if [[ -d "${SETTINGS_START_STORAGE_PATH}" ]]; then
+		local startargs
+
+		while IFS= read -r -d $'\0' jargroup_path; do
+			startargs="$(basename "${jargroup_path}")"
+			echo "$startargs"
+		done < <(find "${SETTINGS_START_STORAGE_PATH}" -mindepth 1 -maxdepth 1 -type f -print0)
+	fi
+}
 
 
 
@@ -1379,7 +1393,9 @@ server_create() {
 			#       the "minecraft" jar group. And make it configurable.
 			if [ -d "$SETTINGS_JAR_STORAGE_PATH/minecraft" ]; then
 				server_get_id "$1"
-				server_set_jar "$RETURN" "minecraft"
+				local ret="$RETURN"
+				server_set_jar "$ret" "minecraft"
+				server_set_startArg "$ret" "java17"
 			fi
 		fi
 	fi
@@ -1760,13 +1776,31 @@ server_set_jar() {
 			as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar\" \"${SERVER_JAR_PATH[$1]}\""
 
 			if [[ "$2" == "forge" ]]; then
-				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/\" \"${SERVER_PATH[$1]}/libraries\""
+				server_property "$1" LIBRARY_PATH
+				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/\" \"${SERVER_LIBRARY_PATH[$1]}\""
 			fi
 
 			echo "Server \"${SERVER_NAME[$1]}\" is now using \"$jar\"."
 		fi
 	else
 		error_exit NAME_NOT_FOUND "There is no jargroup named \"$2\"."
+	fi
+}
+
+# Sets a server's start file
+# $1: the ID of the server
+# $2: the name of the startArg
+server_set_startArg() {
+	manager_property START_STORAGE_PATH
+	server_property "$1" START_PATH
+	server_property "$1" USERNAME
+
+	if [ -f "$SETTINGS_START_STORAGE_PATH/$2" ]; then
+		local startarg=$SETTINGS_START_STORAGE_PATH/$2;
+		as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$startarg\" \"${SERVER_START_PATH[$1]}\""
+		echo "Server \"${SERVER_NAME[$1]}\" is now using \"$startarg\""
+	else
+		error_exit NAME_NOT_FOUND "There is no startArg named \"$2\"."
 	fi
 }
 
@@ -2574,6 +2608,11 @@ command_jargroup_getlatest() {
 	jargroup_getlatest "$1"
 }
 
+# Displays a list of all start scripts in startArgs
+command_startargs_list() {
+	startargs_list
+}
+
 # Displays a list of possible commands and help strings
 command_help() {
 	# Outputs a list of all commands
@@ -2600,6 +2639,7 @@ command_help() {
 	echo -e "  <server> logroll                              Move a server log to a gziped archive, to reduce lag"
 	echo -e "  <server> backup                               Makes a backup of an entire server directory"
 	echo -e "  <server> jar <jargroup> [<file>]              Sets a server's jar file"
+	echo -e "  <server> startarg <file>                      Sets a server's startarg"
 	echo -e "  <server> console                              Connects to the interactive console. Access may be limited"
 	echo -e "  <server> config [<setting> <value>]           Lists server settings, or sets a specific setting."
 	echo -e
@@ -2632,6 +2672,9 @@ command_help() {
 	echo -e "  jargroup changeurl <name> <download-url>      Change the download URL for a jar group"
 	echo -e "  jargroup getlatest <name>                     Download the latest jar file for a jar group"
 	echo -e
+	echo -e "--Start Arguments-----------------------------------------------"
+	echo -e "  startargs list                                List all startArgs."
+	echo -e 
 	echo -e "--Global Commands-----------------------------------------------"
 	echo -e "  start                                         Starts all active servers"
 	echo -e "  stop [now]                                    Stops all running servers"
@@ -2801,6 +2844,11 @@ command_server_backup() {
 #     not provided the latest version will be used.
 command_server_jar() {
 	server_set_jar "$1" "$2" "$3"
+}
+
+# Sets an individual server's start file to run
+command_server_startarg() {
+	server_set_startArg "$1" "$2"
 }
 
 # Turns a server's whitelist protection on
@@ -3263,6 +3311,7 @@ register_settings() {
 	register_setting USERNAME "minecraft"
 	register_setting SERVER_STORAGE_PATH "/opt/msm/servers"
 	register_setting JAR_STORAGE_PATH "/opt/msm/jars"
+	register_setting START_STORAGE_PATH "/opt/msm/startArgs"
 	register_setting VERSIONING_STORAGE_PATH "/opt/msm/versioning"
 	register_setting VERSIONING_FILE_EXTENSION "sh"
 	register_setting RAMDISK_STORAGE_ENABLED "true"
@@ -3275,7 +3324,7 @@ register_settings() {
 	register_setting RDIFF_BACKUP_ROTATION "7"
 
 
-	register_setting UPDATE_URL "https://raw.githubusercontent.com/msmhq/msm/latest"
+	register_setting UPDATE_URL "https://raw.githubusercontent.com/Gohan500/msm/latest"
 
 	register_setting WORLD_ARCHIVE_PATH "/opt/msm/archives/worlds"
 	register_setting LOG_ARCHIVE_PATH "/opt/msm/archives/logs"
@@ -3301,6 +3350,8 @@ register_settings() {
 	register_server_setting OPS_PATH "ops.json"
 	register_server_setting OPS_LIST ""
 	register_server_setting JAR_PATH "server.jar"
+	register_server_setting LIBRARY_PATH "libraries"
+	register_server_setting START_PATH "start.sh"
 
 	register_server_setting FLAG_ACTIVE_PATH "active"
 	register_server_setting COMPLETE_BACKUP_FOLLOW_SYMLINKS "false"
@@ -3699,6 +3750,8 @@ register_commands() {
 	register_command "jargroup changeurl <name> <string>" "command_jargroup_changeurl"
 	register_command "jargroup getlatest <name>" "command_jargroup_getlatest"
 
+	register_command "startargs list" "command_startargs_list"
+
 	register_command "help" "command_help"
 
 	register_command "<name:server> start" "command_server_start"
@@ -3719,6 +3772,7 @@ register_commands() {
 	register_command "<name:server> backup" "command_server_backup"
 	register_command "<name:server> jar <name>" "command_server_jar"
 	register_command "<name:server> jar <name> <string>" "command_server_jar"
+	register_command "<name:server> startarg <string>" "command_server_startarg"
 	register_command "<name:server> console" "command_server_console"
 	register_command "<name:server> config" "command_server_config"
 	register_command "<name:server> config <string>" "command_server_config"
