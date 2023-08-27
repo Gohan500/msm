@@ -25,17 +25,9 @@ function config_installation() {
         msm_dir="$input"
     fi
 
-    echo -n "New server user to be created [${msm_user}]: "
-    read input
-    if [ ! -z "$input" ]; then
-        msm_user="$input"
-    fi
+    msm_user=$USER
 
-    echo -n "Add new user as system account? [y/N]: "
-    read answer
-    if [[ $answer != "y" ]]; then
-        msm_user_system=true
-    fi
+    msm_user_system=false
 
     echo -n "Complete installation with these values? [y/N]: "
     read answer
@@ -68,16 +60,6 @@ function update_system_packages() {
 function install_dependencies() {
     # OVERLOAD THIS
     install_error "No function definition for install_dependencies"
-}
-
-# Verifies existence of or adds user for Minecraft server (default "minecraft")
-function add_minecraft_user() {
-    install_log "Creating default user '${msm_user}'"
-    if $msm_user_system; then
-        sudo useradd ${msm_user} --home "$msm_dir"
-    else
-        sudo useradd ${msm_user} --system --home "$msm_dir"
-    fi
 }
 
 # Verifies existence and permissions of msm server directory (default /opt/msm)
@@ -179,7 +161,6 @@ function install_msm() {
     check_sudo
     update_system_packages
     install_dependencies
-    add_minecraft_user
     create_msm_directories
     download_latest_files
     patch_latest_files
