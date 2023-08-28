@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.7"
+VERSION="0.12.8"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2373,17 +2373,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && return 0
 
 		compare_file "msm.conf" "$CONF"
-		if [ ! -z "$RETURN" ]; then
-			local update
-			if [[ ! "$noinput" ]]; then
-				echo "the msm conf is different then in the update, do you want to override?"
-				read update
-			else
-				update="y"
-			fi
-
-			[ "$update" ] && return 0
-		fi
+		[ ! -z "$RETURN" ] && return 0
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name regex
@@ -2415,6 +2405,7 @@ command_update() {
 	files_need_creating() {
 		[ ! -e "$COMPLETION" ] && return 0
 		[ ! -e "$SCRIPT" ] && return 0
+		[ ! -e "$CONF" ] && return 0
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name
@@ -2462,6 +2453,9 @@ command_update() {
 		compare_file "bash_completion/msm" "$COMPLETION"
 		[ ! -z "$RETURN" ] && echo "  > The bash completion script: $COMPLETION"
 
+		compare_file "msm.conf" "$CONF"
+		[ ! -z "$RETURN" ] && echo "  > The bash completion script: $CONF"
+
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name version_path regex
 		regex="/(([^/]+/[^/]+)\.[^/\.]*)$"
@@ -2496,6 +2490,7 @@ command_update() {
 
 		[ ! -e "$SCRIPT" ] && echo "  > The main MSM script:        $SCRIPT"
 		[ ! -e "$COMPLETION" ] && echo "  > The bash completion script: $COMPLETION"
+		[ ! -e "$CONF" ] && echo "  > The MSM Conf file:            $CONF"
 
 		manager_property VERSIONING_STORAGE_PATH
 
@@ -2534,8 +2529,37 @@ command_update() {
 	if [[ "$answer" =~ ^(y|Y|yes)$ ]]; then
 		echo "Updating MSM to ${latest_version}:"
 
-		# Overwrite bash completion file
 		local created="false"
+		compare_file "msm.conf" "$CONF"
+        if [ ! -z "$RETURN" ]; then
+            local updateans
+            if [[ ! "$noinput" $$ -e "$CONF" ]]; then
+                    echo "the msm conf is different then in the update, do you want to override?"
+                    read updateans
+            else
+                    updateans="y"
+            fi
+                
+			if [[ "$updateans" =~ ^(y|Y|yes)$ ]]; then
+				[ ! -e "$CONF" ] && created="true"
+
+				any_files_updated="true"
+
+				local dir="$(dirname "$CONF")"
+				as_user "root" "mkdir -p \"${dir}\""
+				as_user "root" "mv -f \"$CONF\" \"old-$CONF\""
+				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
+
+				if "$created"; then
+					echo "  > Created: $CONF"
+				else
+					echo "  > Updated: $CONF"
+				fi
+			fi
+        fi
+
+		# Overwrite bash completion file
+		created="false"
 		compare_file "bash_completion/msm" "$COMPLETION"
 		if [ ! -z "$RETURN" ] || [ ! -e "$COMPLETION" ]; then
 			[ ! -e "$COMPLETION" ] && created="true"
@@ -3467,7 +3491,7 @@ register_settings() {
 	register_server_setting WORLDS_FLAG_INRAM "inram"
 
 	register_server_setting RAM "1024"
-	register_server_setting INVOCATION "java -Xms{RAM}M -Xmx{RAM}M -jar {JAR} nogui"
+	register_server_setting INVOCATION "./start.sh -Xms{RAM}M -Xmx{RAM}M"
 	register_server_setting STOP_DELAY "10"
 	register_server_setting RESTART_DELAY "10"
 
