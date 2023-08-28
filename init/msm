@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.5"
+VERSION="0.12.6"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2491,6 +2491,17 @@ command_update() {
 				[ ! -e "$version_path" ] && echo "  > Version file:               $version_path"
 			fi
 		done < <(find "${output_dir}/versioning" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
+
+		manager_property START_STORAGE_PATH
+
+		local start_name start_path
+		while IFS= read -r -d $'\0' path; do
+			if [[ "$path" =~ /([^/]+/[^/]+)\.[^/\.]*$ ]]; then
+				start_name="${BASH_REMATCH[1]}"
+				start_path="${SETTINGS_START_STORAGE_PATH}/${start_name}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
+				[ ! -e "$start_path" ] && echo "  > StartArg file:               $start_path"
+			fi
+		done < <(find "${output_dir}/startArgs" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
 	fi
 
 
@@ -2579,6 +2590,37 @@ command_update() {
 				fi
 			fi
 		done < <(find "${output_dir}/versioning" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
+
+		manager_property START_STORAGE_PATH
+
+		local start_name start_path
+		while IFS= read -r -d $'\0' path; do
+			created="false"
+			if [[ "$path" =~ $regex ]]; then
+				start_name="${BASH_REMATCH[1]}"
+				start_name_without_ext="${BASH_REMATCH[2]}"
+				start_path="${SETTINGS_START_STORAGE_PATH}/${start_name_without_ext}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
+
+				compare_file "${output_dir}/startArgs/$start_name" "$start_path"
+				if [ ! -z "$RETURN" ] || [ ! -e "$start_path" ]; then
+					[ ! -e "$start_path" ] && created="true"
+
+					any_files_updated="true"
+
+					dir="$(dirname ${SETTINGS_START_STORAGE_PATH}/${start_name})"
+					as_user "root" "mkdir -p \"${dir}\""
+					as_user "root" "mv -f \"$path\" \"$start_path\""
+					as_user "root" "chmod +x \"$start_path\""
+					as_user "root" "chown ${SETTINGS_USERNAME}:${SETTINGS_USERNAME} \"$start_path\""
+
+					if "$created"; then
+						echo "  > Created: $start_path"
+					else
+						echo "  > Updated: $start_path"
+					fi
+				fi
+			fi
+		done < <(find "${output_dir}/startArgs" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
 
 		echo "Done."
 	else
