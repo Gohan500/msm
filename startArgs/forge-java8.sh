@@ -1,1 +1,1 @@
-/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java "$@" @server.jar nogui
+/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java "$@" -jar server.jar nogui

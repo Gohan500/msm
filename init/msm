@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.9"
+VERSION="0.12.10"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -1773,13 +1773,16 @@ server_set_jar() {
 		fi
 
 		if [[ ! -z "$jar" ]]; then
-
 			if [[ "$2" == "forge" ]]; then
 				server_property "$1" LIBRARY_PATH
 				local dumversion="$(sed -n 's/^.*forge-//p' <(echo $jar))"
-				echo \"$jar/libraries/net/minecraftforge/forge/$dumversion/unix_args.txt\"
+				local ver="$(cut -d. -f2 <(echo $dumversion))"
 				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/\" \"${SERVER_LIBRARY_PATH[$1]}\""
-				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/net/minecraftforge/forge/$dumversion/unix_args.txt\" \"${SERVER_JAR_PATH[$1]}\""
+				if [ $ver -ge 17 ]; then
+					as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/forge-$dumversion.jar\" \"${SERVER_JAR_PATH[$1]}\""
+				else
+					as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar/libraries/net/minecraftforge/forge/$dumversion/unix_args.txt\" \"${SERVER_JAR_PATH[$1]}\""
+				fi
 			else
 				as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$jar\" \"${SERVER_JAR_PATH[$1]}\""
 			fi
