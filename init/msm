@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.6"
+VERSION="0.12.7"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2383,6 +2383,7 @@ command_update() {
 			fi
 		done < <(find "${output_dir}/versioning" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
 
+		regex="(([^/]+[^/]+)\.[^/\.]*)$"
 		manager_property START_STORAGE_PATH
 		local start_name
 		while IFS= read -r -d $'\0' path; do
@@ -2413,7 +2414,7 @@ command_update() {
 		manager_property START_STORAGE_PATH
 		local start_name
 		while IFS= read -r -d $'\0' path; do
-			if [[ "$path" =~ /([^/]+/[^/]+)\.[^/\.]*$ ]]; then
+			if [[ "$path" =~ ([^/]+[^/]+)\.[^/\.]*$ ]]; then
 				start_name_without_ext="${BASH_REMATCH[1]}"
 				[ ! -e "${SETTINGS_START_STORAGE_PATH}/${start_name_without_ext}.${SETTINGS_VERSIONING_FILE_EXTENSION}" ] && return 0
 			fi
@@ -2461,6 +2462,7 @@ command_update() {
 			fi
 		done < <(find "${output_dir}/versioning" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
 
+		regex="(([^/]+[^/]+)\.[^/\.]*)$"
 		manager_property START_STORAGE_PATH
 		local start_name start_path
 		while IFS= read -r -d $'\0' path; do
@@ -2496,7 +2498,7 @@ command_update() {
 
 		local start_name start_path
 		while IFS= read -r -d $'\0' path; do
-			if [[ "$path" =~ /([^/]+/[^/]+)\.[^/\.]*$ ]]; then
+			if [[ "$path" =~ ([^/]+[^/]+)\.[^/\.]*$ ]]; then
 				start_name="${BASH_REMATCH[1]}"
 				start_path="${SETTINGS_START_STORAGE_PATH}/${start_name}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
 				[ ! -e "$start_path" ] && echo "  > StartArg file:               $start_path"
@@ -2593,6 +2595,7 @@ command_update() {
 
 		manager_property START_STORAGE_PATH
 
+		regex="(([^/]+[^/]+)\.[^/\.]*)$"
 		local start_name start_path
 		while IFS= read -r -d $'\0' path; do
 			created="false"
