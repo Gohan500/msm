@@ -2326,6 +2326,7 @@ command_update() {
 	download_file "init/msm"
 	local latest_version="$(sed -rn "s/^VERSION=('|\"|)(.*)\1/\2/ip" "${output_dir}/init/msm" | tail -n 1)"
 
+	echo "$latest_version"
 	# Download the other files if that version is different (implicitly better) to the current version
 	if [[ "$VERSION" == "$latest_version" ]]; then
 		echo " Already at latest version."
