@@ -2534,7 +2534,7 @@ command_update() {
         if [ ! -z "$RETURN" ]; then
             local updateans
             if [[ ! "$noinput" && -e "$CONF" ]]; then
-                    echo "the msm conf is different then in the update, do you want to override?"
+                    echo -n "the msm conf is different then in the update, do you want to override? [y/N]: "
                     read updateans
             else
                     updateans="y"
