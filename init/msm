@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.1"
+VERSION="0.12.2"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2340,6 +2340,7 @@ command_update() {
 	echo -n "Checking if any files need to be updated..."
 	download_file "bash_completion/msm"
 	download_file "versioning/versions.txt"
+	download_file "startArgs/startArgs.txt"
 
 	# Downloads all versioning files in the latest MSM version
 	download_upstream_versions() {
@@ -2347,7 +2348,6 @@ command_update() {
 
 		while read line; do
 			if [[ "$line" =~ ^([^#]{1}.*)$ ]]; then
-				echo "$BASE_REMATCH[1]"
 				download_file "versioning/${BASH_REMATCH[1]}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
 			fi
 		done < "${output_dir}/versioning/versions.txt"
@@ -2360,7 +2360,7 @@ command_update() {
 			if [[ "$line" =~ ^([^#]{1}.*)$ ]]; then
 				download_file "versioning/${BASH_REMATCH[1]}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
 			fi
-		done < "${output_dir}/versioning/versions.txt"
+		done < "${output_dir}/versioning/startArgs.txt"
 	}
 
 	# $returns: 0 if at least one file needs updating, 1 otherwise
@@ -2403,6 +2403,7 @@ command_update() {
 	}
 
 	download_upstream_versions
+	download_upstream_startargs
 
 	local updating="false"
 	local creating="false"
