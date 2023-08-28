@@ -1294,7 +1294,7 @@ startargs_list() {
 
 		while IFS= read -r -d $'\0' jargroup_path; do
 			startargs="$(basename "${jargroup_path}")"
-			echo "$startargs"
+			echo "$(sed 's![^.]*$!!' <($startargs))"
 		done < <(find "${SETTINGS_START_STORAGE_PATH}" -mindepth 1 -maxdepth 1 -type f -print0)
 	fi
 }
@@ -1796,11 +1796,12 @@ server_set_jar() {
 # $2: the name of the startArg
 server_set_startArg() {
 	manager_property START_STORAGE_PATH
+	manager_property VERSIONING_FILE_EXTENSION
 	server_property "$1" START_PATH
 	server_property "$1" USERNAME
 
-	if [ -f "$SETTINGS_START_STORAGE_PATH/$2" ]; then
-		local startarg=$SETTINGS_START_STORAGE_PATH/$2;
+	if [ -f "$SETTINGS_START_STORAGE_PATH/$2.$SETTINGS_VERSIONING_FILE_EXTENSION" ]; then
+		local startarg=$SETTINGS_START_STORAGE_PATH/$2.$SETTINGS_VERSIONING_FILE_EXTENSION;
 		as_user "${SERVER_USERNAME[$1]}" "ln -sf \"$startarg\" \"${SERVER_START_PATH[$1]}\""
 		echo "Server \"${SERVER_NAME[$1]}\" is now using \"$startarg\""
 	else
