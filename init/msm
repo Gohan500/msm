@@ -2539,7 +2539,7 @@ command_update() {
             else
                     updateans="y"
             fi
-                
+
 			if [[ "$updateans" =~ ^(y|Y|yes)$ ]]; then
 				[ ! -e "$CONF" ] && created="true"
 
