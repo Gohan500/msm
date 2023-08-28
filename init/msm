@@ -2547,7 +2547,7 @@ command_update() {
 
 				local dir="$(dirname "$CONF")"
 				as_user "root" "mkdir -p \"${dir}\""
-				as_user "root" "mv -f \"$CONF\" \"old-$CONF\""
+				as_user "root" "mv -f \"$CONF\" \"$CONF.old\""
 				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
 
 				if "$created"; then
