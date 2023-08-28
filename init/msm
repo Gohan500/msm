@@ -2339,6 +2339,7 @@ command_update() {
 
 	echo -n "Checking if any files need to be updated..."
 	download_file "bash_completion/msm"
+	download_file "msm.conf"
 	download_file "versioning/versions.txt"
 	download_file "startArgs/startArgs.txt"
 
@@ -2370,6 +2371,19 @@ command_update() {
 
 		compare_file "init/msm" "$SCRIPT"
 		[ ! -z "$RETURN" ] && return 0
+
+		compare_file "msm.conf" "$CONF"
+		if [ ! -z "$RETURN" ]; then
+			local update
+			if [[ ! "$noinput" ]]; then
+				echo "the msm conf is different then in the update, do you want to override?"
+				read update
+			else
+				update="y"
+			fi
+
+			[ "$update" ] && return 0
+		fi
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name regex
