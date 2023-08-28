@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.8"
+VERSION="0.12.9"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2373,7 +2373,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && return 0
 
 		compare_file "msm.conf" "$CONF"
-		[ ! -z "$RETURN" ] && return 0
+		[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ] && return 0
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name regex
@@ -2454,7 +2454,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && echo "  > The bash completion script: $COMPLETION"
 
 		compare_file "msm.conf" "$CONF"
-		[ ! -z "$RETURN" ] && echo "  > The bash completion script: $CONF"
+		[[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]] && echo "  > The bash completion script: $CONF"
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name version_path regex
@@ -2531,7 +2531,7 @@ command_update() {
 
 		local created="false"
 		compare_file "msm.conf" "$CONF"
-        if [ ! -z "$RETURN" ]; then
+        if [ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]; then
             local updateans
             if [[ ! "$noinput" && -e "$CONF" ]]; then
                     echo -n "the msm conf is different then in the update, do you want to override? [y/N]: "
@@ -2553,9 +2553,7 @@ command_update() {
 				as_user "root" "mkdir -p \"${dir}\""
 				as_user "root" "mv -f \"$CONF\" \"$CONF.old\""
 				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
-				as_user "root" "sed s#USERNAME=\"minecraft\"#USERNAME=\"$SETTINGS_USERNAME\"#g \"$CONF\" | \\
-        			sed \"s#/opt/msm#$SETTINGS_MSM_STORAGE_PATH#g\" | \\
-        			sed \"s#UPDATE_URL=.*\$#UPDATE_URL=\"$SETTINGS_UPDATE_URL\"#\" >\"$CONF\""
+				as_user "root" "sed -i.bak 's#USERNAME=\"minecraft\"#USERNAME=\"'$SETTINGS_USERNAME'\"#g;s#/opt/msm#'$SETTINGS_MSM_STORAGE_PATH'#g;s#UPDATE_URL=.*#UPDATE_URL=\"$SETTINGS_UPDATE_URL\"#g' \"$CONF\""
 
 				if "$created"; then
 					echo "  > Created: $CONF"
@@ -2585,25 +2583,25 @@ command_update() {
 			fi
 		fi
 
-		# Overwrite the MSM script itself
-		created="false"
-		compare_file "init/msm" "$SCRIPT"
-		if [ ! -z "$RETURN" ] || [ ! -e "$SCRIPT" ]; then
-			[ ! -e "$SCRIPT" ] && created="true"
+		# # Overwrite the MSM script itself
+		# created="false"
+		# compare_file "init/msm" "$SCRIPT"
+		# if [ ! -z "$RETURN" ] || [ ! -e "$SCRIPT" ]; then
+		# 	[ ! -e "$SCRIPT" ] && created="true"
 
-			any_files_updated="true"
+		# 	any_files_updated="true"
 
-			dir="$(dirname "$SCRIPT")"
-			as_user "root" "mkdir -p \"${dir}\""
-			as_user "root" "mv -f \"${output_dir}/init/msm\" \"$SCRIPT\""
-			as_user "root" "chmod +x \"$SCRIPT\""
+		# 	dir="$(dirname "$SCRIPT")"
+		# 	as_user "root" "mkdir -p \"${dir}\""
+		# 	as_user "root" "mv -f \"${output_dir}/init/msm\" \"$SCRIPT\""
+		# 	as_user "root" "chmod +x \"$SCRIPT\""
 
-			if "$created"; then
-				echo "  > Created: $SCRIPT"
-			else
-				echo "  > Updated: $SCRIPT"
-			fi
-		fi
+		# 	if "$created"; then
+		# 		echo "  > Created: $SCRIPT"
+		# 	else
+		# 		echo "  > Updated: $SCRIPT"
+		# 	fi
+		# fi
 
 		# Overwrite the versioning files
 		manager_property VERSIONING_STORAGE_PATH
