@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.4"
+VERSION="0.12.5"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -2460,6 +2460,19 @@ command_update() {
 				[ ! -z "$RETURN" ] && echo "  > Version file:               $version_path"
 			fi
 		done < <(find "${output_dir}/versioning" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
+
+		manager_property START_STORAGE_PATH
+		local start_name start_path
+		while IFS= read -r -d $'\0' path; do
+			if [[ "$path" =~ $regex ]]; then
+				start_name="${BASH_REMATCH[1]}"
+				start_name_without_ext="${BASH_REMATCH[2]}"
+
+				start_path="${SETTINGS_START_STORAGE_PATH}/${start_name_without_ext}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
+				compare_file "startArgs/$start_name" "$start_path"
+				[ ! -z "$RETURN" ] && echo "  > StartArg file:               $start_path"
+			fi
+		done < <(find "${output_dir}/startArgs" -mindepth 1 -name \*.${SETTINGS_VERSIONING_FILE_EXTENSION} -type f -print0)
 	fi
 
 	if [[ "$creating" == "true" ]]; then
