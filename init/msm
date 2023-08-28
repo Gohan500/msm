@@ -2531,7 +2531,7 @@ command_update() {
 
 		local created="false"
 		compare_file "msm.conf" "$CONF"
-        if [ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]; then
+        if [[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]]; then
             local updateans
             if [[ ! "$noinput" && -e "$CONF" ]]; then
                     echo -n "the msm conf is different then in the update, do you want to override? [y/N]: "
