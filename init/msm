@@ -2347,7 +2347,7 @@ command_update() {
 
 		while read line; do
 			if [[ "$line" =~ ^([^#]{1}.*)$ ]]; then
-				echo "${BASE_REMATCH[1]}"
+				echo "$BASE_REMATCH[1]"
 				download_file "versioning/${BASH_REMATCH[1]}.${SETTINGS_VERSIONING_FILE_EXTENSION}"
 			fi
 		done < "${output_dir}/versioning/versions.txt"
