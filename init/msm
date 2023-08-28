@@ -2274,6 +2274,10 @@ command_update() {
 		local noinput="true"
 	fi
 
+	if [[ "$COMMAND_FLAGS" =~ \;--conf\; ]]; then
+		local noconf="true"
+	fi
+
 	manager_property UPDATE_URL
 	manager_property USERNAME
 
@@ -2373,7 +2377,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && return 0
 
 		compare_file "msm.conf" "$CONF"
-		[[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]] && return 0
+		[[ ! -z "$RETURN" && ! "$noconf" ]] && return 0
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name regex
@@ -2454,7 +2458,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && echo "  > The bash completion script: $COMPLETION"
 
 		compare_file "msm.conf" "$CONF"
-		[[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]] && echo "  > The bash completion script: $CONF"
+		[[ ! -z "$RETURN" && ! "$noconf" ]] && echo "  > The bash completion script: $CONF"
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name version_path regex
@@ -2531,7 +2535,7 @@ command_update() {
 
 		local created="false"
 		compare_file "msm.conf" "$CONF"
-        if [[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]]; then
+        if [[ ! -z "$RETURN" && ! "$noconf" ]]; then
             local updateans
             if [[ ! "$noinput" && -e "$CONF" ]]; then
                     echo -n "the msm conf is different then in the update, do you want to override? [y/N]: "
@@ -2554,6 +2558,8 @@ command_update() {
 				as_user "root" "mv -f \"$CONF\" \"$CONF.old\""
 				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
 				as_user "root" "sed -i.bak 's#USERNAME=\"minecraft\"#USERNAME=\"'$SETTINGS_USERNAME'\"#g;s#/opt/msm#'$SETTINGS_MSM_STORAGE_PATH'#g;s#UPDATE_URL=.*#UPDATE_URL=\"$SETTINGS_UPDATE_URL\"#g' \"$CONF\""
+
+				noconf="true"
 
 				if "$created"; then
 					echo "  > Created: $CONF"
@@ -2679,7 +2685,11 @@ command_update() {
 	# update code, in case there are new things to update that
 	# this version of MSM does not know about yet.
 	if [[ "$any_files_updated" == "true" ]]; then
-		$0 update
+		if [ "$noconf" ]; then
+			$0 update --conf
+		else
+			$0 update
+		fi 
 	fi
 }
 
