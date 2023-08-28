@@ -2543,12 +2543,19 @@ command_update() {
 			if [[ "$updateans" =~ ^(y|Y|yes)$ ]]; then
 				[ ! -e "$CONF" ] && created="true"
 
+				manager_property USERNAME
+				manager_property UPDATE_URL
+				manager_property MSM_STORAGE_PATH
+
 				any_files_updated="true"
 
 				local dir="$(dirname "$CONF")"
 				as_user "root" "mkdir -p \"${dir}\""
 				as_user "root" "mv -f \"$CONF\" \"$CONF.old\""
 				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
+				as_user "root" "sed 's#USERNAME=\"minecraft\"#USERNAME=\"'$SETTINGS_USERNAME'\"#g' \"$CONF\" | \
+        			sed \"s#/opt/msm#$SETTINGS_MSM_STORAGE_PATH#g\" | \
+        			sed \"s#UPDATE_URL=.*\$#UPDATE_URL=\"$SETTINGS_UPDATE_URL\"#\" >\"$CONF\""
 
 				if "$created"; then
 					echo "  > Created: $CONF"
@@ -3441,6 +3448,7 @@ register_settings() {
 	register_setting DEBUG "false"
 
 	register_setting USERNAME "minecraft"
+	register_setting MSM_STORAGE_PATH "/opt/msm"
 	register_setting SERVER_STORAGE_PATH "/opt/msm/servers"
 	register_setting JAR_STORAGE_PATH "/opt/msm/jars"
 	register_setting START_STORAGE_PATH "/opt/msm/startArgs"
