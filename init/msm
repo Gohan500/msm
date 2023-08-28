@@ -2373,7 +2373,7 @@ command_update() {
 		[ ! -z "$RETURN" ] && return 0
 
 		compare_file "msm.conf" "$CONF"
-		[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ] && return 0
+		[[ ! -z "$RETURN" && "$VERSION" != "$latest_version" ]] && return 0
 
 		manager_property VERSIONING_STORAGE_PATH
 		local version_name regex
