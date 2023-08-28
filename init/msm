@@ -2583,25 +2583,25 @@ command_update() {
 			fi
 		fi
 
-		# # Overwrite the MSM script itself
-		# created="false"
-		# compare_file "init/msm" "$SCRIPT"
-		# if [ ! -z "$RETURN" ] || [ ! -e "$SCRIPT" ]; then
-		# 	[ ! -e "$SCRIPT" ] && created="true"
+		# Overwrite the MSM script itself
+		created="false"
+		compare_file "init/msm" "$SCRIPT"
+		if [ ! -z "$RETURN" ] || [ ! -e "$SCRIPT" ]; then
+			[ ! -e "$SCRIPT" ] && created="true"
 
-		# 	any_files_updated="true"
+			any_files_updated="true"
 
-		# 	dir="$(dirname "$SCRIPT")"
-		# 	as_user "root" "mkdir -p \"${dir}\""
-		# 	as_user "root" "mv -f \"${output_dir}/init/msm\" \"$SCRIPT\""
-		# 	as_user "root" "chmod +x \"$SCRIPT\""
+			dir="$(dirname "$SCRIPT")"
+			as_user "root" "mkdir -p \"${dir}\""
+		 	as_user "root" "mv -f \"${output_dir}/init/msm\" \"$SCRIPT\""
+		 	as_user "root" "chmod +x \"$SCRIPT\""
 
-		# 	if "$created"; then
-		# 		echo "  > Created: $SCRIPT"
-		# 	else
-		# 		echo "  > Updated: $SCRIPT"
-		# 	fi
-		# fi
+		 	if "$created"; then
+		 		echo "  > Created: $SCRIPT"
+		 	else
+		 		echo "  > Updated: $SCRIPT"
+		 	fi
+		fi
 
 		# Overwrite the versioning files
 		manager_property VERSIONING_STORAGE_PATH
