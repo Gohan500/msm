@@ -2553,9 +2553,9 @@ command_update() {
 				as_user "root" "mkdir -p \"${dir}\""
 				as_user "root" "mv -f \"$CONF\" \"$CONF.old\""
 				as_user "root" "mv -f \"${output_dir}/msm.conf\" \"$CONF\""
-				as_user "root" "sed 's#USERNAME="minecraft"#USERNAME="'$SETTINGS_USERNAME'"#g' "$CONF" | \
-        			sed "s#/opt/msm#$SETTINGS_MSM_STORAGE_PATH#g" | \
-        			sed "s#UPDATE_URL=.*\$#UPDATE_URL="$SETTINGS_UPDATE_URL"#" >"$CONF""
+				as_user "root" "sed s#USERNAME=\"minecraft\"#USERNAME=\"$SETTINGS_USERNAME\"#g \"$CONF\" | \\
+        			sed \"s#/opt/msm#$SETTINGS_MSM_STORAGE_PATH#g\" | \\
+        			sed \"s#UPDATE_URL=.*\$#UPDATE_URL=\"$SETTINGS_UPDATE_URL\"#\" >\"$CONF\""
 
 				if "$created"; then
 					echo "  > Created: $CONF"
