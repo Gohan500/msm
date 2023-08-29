@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.10"
+VERSION="0.12.11"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -656,6 +656,18 @@ server_ensure_jar() {
 	fi
 
 	error_exit FILE_NOT_FOUND "Could not find jar for server \"${SERVER_NAME[$1]}\": Expected \"${SERVER_JAR_PATH[$1]}\"."
+}
+
+# Ensures the server has a jar file where it is expected to be
+# $1: the id of the server
+server_ensure_startarg() {
+	server_property "$1" START_PATH
+
+	if [ -e "${SERVER_START_PATH[$1]}" ]; then
+		return 0
+	fi
+
+	error_exit FILE_NOT_FOUND "Could not find startarg for server \"${SERVER_NAME[$1]}\": Expected \"${SERVER_START_PATH[$1]}\"."
 }
 
 # Read a value from the server configuration file
@@ -1480,6 +1492,7 @@ server_start() {
 			error_exit JAVA_NOT_INSTALLED "Could not start server as Java is not installed."
 		fi
 		server_ensure_jar "$1"
+		server_ensure_startarg "$1"
 		server_ensure_links "$1"
 		server_worlds_to_ram "$1"
 
