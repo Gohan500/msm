@@ -28,7 +28,7 @@
 
 
 # The Minecraft Server Manager version, use "msm version" to check yours.
-VERSION="0.12.11"
+VERSION="0.12.12"
 
 # Source, if it exists, the msm profile.d script
 if [ -f "/etc/profile.d/msm.sh" ]; then
@@ -1758,6 +1758,20 @@ server_backup() {
 	echo "Done."
 }
 
+# Return a server's current jar file
+# $1: the ID of the server
+server_get_jar() {
+	server_property "$1" JAR_PATH
+
+	local jar="$(readlink -f ${SERVER_JAR_PATH[$1]})"
+
+	if [[ ! -e "$jar" ]]; then
+		echo "Server \"${SERVER_NAME[$1]}\" does not have a valid Jar file!"
+	else
+		echo "Server \"${SERVER_NAME[$1]}\" is using \"$jar\""
+	fi
+}
+
 # Sets a server's jar file
 # $1: The ID of the server
 # $2: The name of the jar group
@@ -2802,6 +2816,7 @@ command_help() {
 	echo -e "  <server> worlds on|off <world>                Activate or deactivate a world, inactive worlds are not backed up"
 	echo -e "  <server> logroll                              Move a server log to a gziped archive, to reduce lag"
 	echo -e "  <server> backup                               Makes a backup of an entire server directory"
+	echo -e "  <server> jar                                  Gets a server's jar file"
 	echo -e "  <server> jar <jargroup> [<file>]              Sets a server's jar file"
 	echo -e "  <server> startarg <file>                      Sets a server's startarg"
 	echo -e "  <server> console                              Connects to the interactive console. Access may be limited"
@@ -2999,6 +3014,12 @@ command_server_backup() {
 	fi
 
 	echo "Backup took $SECONDS seconds".
+}
+
+# Gets an individual server's jar file
+# $1: The server ID
+command_server_get_jar() {
+	server_get_jar "$1"
 }
 
 # Sets an individual server's jar file to use when starting up
@@ -3935,6 +3956,7 @@ register_commands() {
 	register_command "<name:server> worlds off <name:world>" "command_server_worlds_off"
 	register_command "<name:server> logroll" "command_server_logroll"
 	register_command "<name:server> backup" "command_server_backup"
+	register_command "<name:server> jar" "command_server_get_jar"
 	register_command "<name:server> jar <name>" "command_server_jar"
 	register_command "<name:server> jar <name> <string>" "command_server_jar"
 	register_command "<name:server> startarg <string>" "command_server_startarg"
